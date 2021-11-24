@@ -73,7 +73,7 @@ class RouteCollection
       * @var array
      */
      protected $options = [
-        self::PX_PREFIX          => '',
+        self::PX_PREFIX        => '',
         self::PX_NAMESPACE     => '',
         self::PX_NAME          => '',
         self::PX_MIDDLEWARE    => []
@@ -86,7 +86,7 @@ class RouteCollection
      *
      * @var array
     */
-    protected $defaultOptions = [
+    protected $moduleOptions = [
         self::PX_PREFIX          => '/module',
         self::PX_NAMESPACE       => 'Module\\',
         self::PX_NAME            => 'default.',
@@ -168,7 +168,26 @@ class RouteCollection
 
 
 
-    /**
+     /**
+      * Set global route patterns
+      *
+      * @param $name
+      * @param $regex
+      * @return RouteCollection
+     */
+     public function patterns($name, $regex = null): RouteCollection
+     {
+         $patterns = \is_array($name) ? $name : [$name => $regex];
+
+         $this->patterns = array_merge($this->patterns, $patterns);
+
+         return $this;
+     }
+
+
+
+
+     /**
      * Add route with given params
      *
      * @param $methods
@@ -184,15 +203,14 @@ class RouteCollection
            $path     = $this->resolvePath($path);
            $callback = $this->resolveCallback($callback);
 
-           $route = new Route($methods, $path, $callback, $name);
+           $route = new Route($methods, $path, $callback, $this->getRoutePrefix());
 
            if ($name) {
                $route->name($name);
            }
 
            $route->where($this->patterns)
-                 ->middleware($this->getGlobalMiddlewares())
-           ;
+                 ->middleware($this->getGlobalRouteMiddlewares());
 
 
            $this->addRoute($route);
@@ -220,6 +238,13 @@ class RouteCollection
      public function addRouteGroup(RouteGroup $group)
      {
           $this->groups[] = $group;
+     }
+
+
+
+     public function module(Closure $closure)
+     {
+         $this->group($closure, $this->moduleOptions);
      }
 
 
@@ -305,8 +330,18 @@ class RouteCollection
      /**
       * @return array
      */
-     protected function getGlobalMiddlewares(): ?array
+     protected function getGlobalRouteMiddlewares(): ?array
      {
          return $this->getOptionValue(static::PX_MIDDLEWARE, []);
+     }
+
+
+
+     /**
+      * @return string
+     */
+     protected function getRoutePrefix(): ?string
+     {
+         return $this->getOptionValue(static::PX_PREFIX, '');
      }
 }
