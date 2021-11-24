@@ -240,7 +240,6 @@ class Route
     }
 
 
-
     /**
      * set route name
      *
@@ -303,7 +302,7 @@ class Route
      * @param string $name
      * @return $this
      */
-    public function whereNumeric(string $name): Route
+    public function whereNumber(string $name): Route
     {
         return $this->where($name, '[0-9]+'); // (\d+)
     }

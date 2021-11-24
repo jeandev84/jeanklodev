@@ -2,6 +2,7 @@
 namespace Jan\Component\Routing;
 
 
+use Closure;
 use Jan\Component\Routing\Exception\RouteException;
 
 
@@ -14,12 +15,45 @@ use Jan\Component\Routing\Exception\RouteException;
 class RouteCollection
 {
 
+     const PX_PREFIX        = 'prefix';
+     const PX_NAMESPACE     = 'namespace';
+     const PX_MIDDLEWARE    = 'middleware';
+     const PX_NAME          = 'name';
+
+
+
+     /**
+      * @var string
+     */
+     protected $namespace;
+
+
+
      /**
       * Storage routes
       *
       * @var array
      */
      protected $routes = [];
+
+
+
+     /**
+      * Storage routes group
+      *
+      * @var array
+     */
+     protected $groups = [];
+
+
+
+     /**
+      * Storage routes resources
+      *
+      * @var array
+     */
+     protected $resources = [];
+
 
 
 
@@ -32,30 +66,106 @@ class RouteCollection
 
 
 
+
      /**
+      * route prefixes
+      *
+      * @var array
+     */
+     protected $options = [
+        self::PX_PREFIX          => '',
+        self::PX_NAMESPACE     => '',
+        self::PX_NAME          => '',
+        self::PX_MIDDLEWARE    => []
+    ];
+
+
+
+    /**
+     * route default prefixes
+     *
+     * @var array
+    */
+    protected $defaultOptions = [
+        self::PX_PREFIX          => '/module',
+        self::PX_NAMESPACE       => 'Module\\',
+        self::PX_NAME            => 'default.',
+        self::PX_MIDDLEWARE      => []
+    ];
+
+
+
+
+    /**
+     * Get all stored routes
+     *
+     * @return Route[]
+    */
+    public function getRoutes(): array
+    {
+        return $this->routes;
+    }
+
+
+
+
+    /**
       * Add route
       *
       * @param Route $route
-      * @return Route
+      * @return $this
      */
-     public function addRoute(Route $route): Route
+     public function addRoute(Route $route): RouteCollection
      {
          $this->routes[] = $route;
 
-         return $route;
+         return $this;
+     }
+
+
+
+
+
+     /**
+      * Add routes
+      *
+      * @param array $routes
+     */
+     public function addRoutes(array $routes)
+     {
+          foreach ($routes as $route) {
+              $this->addRoute($route);
+          }
      }
 
 
 
      /**
-      * Get all stored routes
+      * Add route options
       *
-      * @return Route[]
+      * @param array $options
+      * @return $this
      */
-     public function getRoutes(): array
+     public function addRouteOptions(array $options): RouteCollection
      {
-         return $this->routes;
+          $this->options = array_merge($this->options, $options);
+
+          return $this;
      }
+
+
+
+     /**
+      * Remove route options
+      *
+      * @return void
+     */
+     public function removeRouteOptions()
+     {
+          $this->options = [];
+     }
+
+
 
 
     /**
@@ -71,6 +181,8 @@ class RouteCollection
      public function map($methods, string $path, $callback, string $name = null): Route
      {
            $methods  = $this->resolveMethods($methods);
+           $path     = $this->resolvePath($path);
+           $callback = $this->resolveCallback($callback);
 
            $route = new Route($methods, $path, $callback, $name);
 
@@ -78,26 +190,123 @@ class RouteCollection
                $route->name($name);
            }
 
-           return $this->addRoute($route);
+           $route->where($this->patterns)
+                 ->middleware($this->getGlobalMiddlewares())
+           ;
+
+
+           $this->addRoute($route);
+
+           return $route;
      }
+
+
+
+
+     public function group(Closure $routes, array $options = [])
+     {
+           $this->addRouteOptions($options);
+
+           $routes();
+
+           $this->removeRouteOptions();
+     }
+
+
+
+     /**
+      * @param RouteGroup $group
+     */
+     public function addRouteGroup(RouteGroup $group)
+     {
+          $this->groups[] = $group;
+     }
+
+
+
+     public function resource(string $path , string $controller)
+     {
+
+     }
+
 
 
 
 
      /**
       * Resolve methods
+      *
       * @param $methods
       * @return array
      */
      protected function resolveMethods($methods): array
      {
+         if (\is_string($methods)) {
+             $methods = explode('|', $methods);
+         }
+
          return (array) $methods;
      }
 
 
 
+     /**
+      * Resolve path
+      *
+      * @param $path
+      * @return mixed|string
+     */
      protected function resolvePath($path)
      {
+         if ($prefix = $this->getOptionValue(static::PX_PREFIX)) {
+             $path = trim($prefix, '/'). '/' . ltrim($path, '/');
+         }
 
+         return $path;
+     }
+
+
+
+     /**
+      * @param $callback
+      * @return mixed|string
+     */
+     protected function resolveCallback($callback)
+     {
+         $namespace = $this->getOptionValue(static::PX_NAMESPACE);
+
+         if (\is_string($callback)) {
+             if ($namespace) {
+                 $callback = rtrim($namespace, '\\') . '\\'. $callback;
+             }
+
+             if ($this->namespace) {
+                 $callback = $this->namespace .'\\' . $callback;
+             }
+         }
+
+         return $callback;
+     }
+
+
+
+     /**
+      * @param $name
+      * @param null $default
+      * @return mixed
+     */
+     protected function getOptionValue($name, $default = null)
+     {
+          return $this->options[$name] ?? $default;
+     }
+
+
+
+     /**
+      * @return array
+     */
+     protected function getGlobalMiddlewares(): ?array
+     {
+         return $this->getOptionValue(static::PX_MIDDLEWARE, []);
      }
 }
