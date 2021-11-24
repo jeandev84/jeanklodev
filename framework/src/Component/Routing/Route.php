@@ -290,7 +290,7 @@ class Route
     public function where($name, $regex = null): Route
     {
         foreach ($this->parseWhere($name, $regex) as $name => $regex) {
-            $this->patterns[$name] = '(?P<'. $name .'>'. $this->resolveRegex($regex) . ')';
+            $this->patterns[$name] =  $this->makePattern($name, $regex);
         }
 
         return $this;
@@ -391,5 +391,16 @@ class Route
     protected function resolveRegex($regex)
     {
         return str_replace('(', '(?:', $regex);
+    }
+
+
+    /**
+     * @param $name
+     * @param $regex
+     * @return string
+    */
+    protected function makePattern($name, $regex): string
+    {
+        return '(?P<'. $name .'>'. $this->resolveRegex($regex) . ')';
     }
 }

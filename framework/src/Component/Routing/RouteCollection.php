@@ -71,8 +71,6 @@ class RouteCollection
      public function map($methods, string $path, $callback, string $name = null): Route
      {
            $methods  = $this->resolveMethods($methods);
-           $path     = '';
-           $callback = '';
 
            $route = new Route($methods, $path, $callback, $name);
 
