@@ -162,6 +162,21 @@ class Route
 
 
 
+
+    /**
+     * get route patterns
+     *
+     * @return array
+    */
+    public function getPatterns(): array
+    {
+        return $this->patterns;
+    }
+
+
+
+
+
     /**
      * set route methods
      *
@@ -261,5 +276,120 @@ class Route
         $this->middlewares = array_merge($this->middlewares, (array) $middleware);
 
         return $this;
+    }
+
+
+
+    /**
+     * set route regex params
+     *
+     * @param $name
+     * @param null $regex
+     * @return Route
+     */
+    public function where($name, $regex = null): Route
+    {
+        foreach ($this->parseWhere($name, $regex) as $name => $regex) {
+            $this->patterns[$name] = '(?P<'. $name .'>'. $this->resolveRegex($regex) . ')';
+        }
+
+        return $this;
+    }
+
+
+
+
+    /**
+     * @param string $name
+     * @return $this
+     */
+    public function whereNumeric(string $name): Route
+    {
+        return $this->where($name, '[0-9]+'); // (\d+)
+    }
+
+
+
+
+    /**
+     * @param string $name
+     * @return Route
+    */
+    public function anything(string $name): Route
+    {
+        return $this->where($name, '.*');
+    }
+
+
+
+
+    /**
+     * @param string $name
+     * @return $this|Route
+     */
+    public function whereWord(string $name): Route
+    {
+        return $this->where($name, '\w+');
+    }
+
+
+
+
+    /**
+     * @param string $name
+     * @return $this|Route
+     */
+    public function whereDigital(string $name): Route
+    {
+        return $this->where($name, '\d+');
+    }
+
+
+
+
+    /**
+     * @param string $name
+     * @return Route
+     */
+    public function whereAlphaNumeric(string $name): Route
+    {
+        return $this->where($name, '[^a-z_\-0-9]');
+    }
+
+
+
+    /**
+     * @param string $name
+     * @return Route
+    */
+    public function whereSlug(string $name): Route
+    {
+        return $this->where($name, '[a-z\-0-9]+');
+    }
+
+
+
+
+    /**
+     * Determine parses
+     *
+     * @param $name
+     * @param $regex
+     * @return array
+    */
+    protected function parseWhere($name, $regex): array
+    {
+        return \is_array($name) ? $name : [$name => $regex];
+    }
+
+
+
+    /**
+     * @param $regex
+     * @return string|string[]
+    */
+    protected function resolveRegex($regex)
+    {
+        return str_replace('(', '(?:', $regex);
     }
 }

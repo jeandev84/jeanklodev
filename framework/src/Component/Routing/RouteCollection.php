@@ -2,6 +2,10 @@
 namespace Jan\Component\Routing;
 
 
+use Jan\Component\Routing\Exception\RouteException;
+
+
+
 /**
  * @see RouteCollection
  *
@@ -54,15 +58,15 @@ class RouteCollection
      }
 
 
-
-     /**
-      * Add route with given params
-      *
-      * @param $methods
-      * @param string $path
-      * @param $callback
-      * @param string|null $name
-      * @return Route
+    /**
+     * Add route with given params
+     *
+     * @param $methods
+     * @param string $path
+     * @param $callback
+     * @param string|null $name
+     * @return Route
+     * @throws RouteException
      */
      public function map($methods, string $path, $callback, string $name = null): Route
      {
@@ -73,7 +77,7 @@ class RouteCollection
            $route = new Route($methods, $path, $callback, $name);
 
            if ($name) {
-               // $route->name($name);
+               $route->name($name);
            }
 
            return $this->addRoute($route);
@@ -90,5 +94,12 @@ class RouteCollection
      protected function resolveMethods($methods): array
      {
          return (array) $methods;
+     }
+
+
+
+     protected function resolvePath($path)
+     {
+
      }
 }
