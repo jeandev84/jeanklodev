@@ -200,17 +200,17 @@ class RouteCollection
      public function map($methods, string $path, $callback, string $name = null): Route
      {
            $methods  = $this->resolveMethods($methods);
-           $path     = $this->resolvePath($path);
+           $pattern  = $this->resolvePath($path);
            $callback = $this->resolveCallback($callback);
 
-           $route = new Route($methods, $path, $callback, $this->getRoutePrefix());
+           $route = new Route($methods, $pattern, $callback, $this->getRoutePrefix());
 
            if ($name) {
                $route->name($name);
            }
 
            $route->where($this->patterns)
-                 ->middleware($this->getGlobalRouteMiddlewares());
+                 ->middleware($this->getPreviousRouteMiddlewares());
 
 
            $this->addRoute($route);
@@ -301,6 +301,7 @@ class RouteCollection
          $namespace = $this->getOptionValue(static::PX_NAMESPACE);
 
          if (\is_string($callback)) {
+
              if ($namespace) {
                  $callback = rtrim($namespace, '\\') . '\\'. $callback;
              }
@@ -330,7 +331,7 @@ class RouteCollection
      /**
       * @return array
      */
-     protected function getGlobalRouteMiddlewares(): ?array
+     protected function getPreviousRouteMiddlewares(): ?array
      {
          return $this->getOptionValue(static::PX_MIDDLEWARE, []);
      }

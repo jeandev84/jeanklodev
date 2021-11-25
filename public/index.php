@@ -13,8 +13,7 @@ $collection = new \Jan\Component\Routing\RouteCollection();
 $collection->addRoute($route);
 
 $collection->map(['GET'], '/contact', 'SiteController@contact' )
-           ->name('contact')
-;
+           ->name('contact');
 
 
 dd($collection->getRoutes());

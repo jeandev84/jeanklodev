@@ -11,11 +11,13 @@ use Jan\Component\Routing\Exception\RouteException;
 */
 class Route
 {
+
+
     /**
      * route path
      *
      * @var string
-     */
+    */
     protected $path;
 
 
@@ -52,7 +54,7 @@ class Route
      *
      * @var array
      */
-    protected $patterns = [];
+    protected $params = [];
 
 
 
@@ -168,12 +170,23 @@ class Route
      *
      * @return array
     */
-    public function getPatterns(): array
+    public function getParams(): array
     {
-        return $this->patterns;
+        return $this->params;
     }
 
 
+
+
+    /**
+     * get matches params
+     *
+     * @return array
+    */
+    public function getMatches(): array
+    {
+        return $this->matches;
+    }
 
 
 
@@ -240,6 +253,9 @@ class Route
     }
 
 
+
+
+
     /**
      * set route name
      *
@@ -264,6 +280,7 @@ class Route
 
 
 
+
     /**
      * set route middlewares
      *
@@ -285,11 +302,11 @@ class Route
      * @param $name
      * @param null $regex
      * @return Route
-     */
+    */
     public function where($name, $regex = null): Route
     {
         foreach ($this->parseWhere($name, $regex) as $name => $regex) {
-            $this->patterns[$name] =  $this->makePattern($name, $regex);
+            $this->params[$name] =  $this->makePattern($name, $regex);
         }
 
         return $this;
