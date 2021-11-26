@@ -420,15 +420,20 @@ class RouteCollection implements RouteCollectionInterface
 
 
 
+
      /**
       * @param Closure $routes
       * @param array $options
      */
      public function group(Closure $routes, array $options)
      {
+           $group = new RouteGroup($routes);
+
            $this->addRouteOptions($options);
 
-           $routes();
+           $group->call();
+
+           $this->addRouteGroup($group);
 
            $this->removeRouteOptions();
      }

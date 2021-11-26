@@ -8,10 +8,31 @@ namespace Jan\Component\Routing;
 */
 class RouteGroup
 {
-     protected $routes = [];
 
-     public function __construct(array $routes)
+     /**
+      * @var \Closure
+     */
+     protected $callback;
+
+
+
+
+     /**
+      * @param \Closure $callback
+     */
+     public function __construct(\Closure $callback)
      {
-         $this->routes = $routes;
+         $this->callback = $callback;
+     }
+
+
+
+
+     /**
+      * Call routes group
+     */
+     public function call()
+     {
+         call_user_func($this->callback);
      }
 }
