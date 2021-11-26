@@ -118,6 +118,22 @@ class Route implements RouteMatchedInterface, \ArrayAccess
 
 
 
+
+    /**
+     * @param array $methods
+     * @param string|null $path
+     * @param null $callback
+     * @param string|null $name
+     * @return Route
+    */
+    public static function make(array $methods = [], string $path = null, $callback = null, string $name = null): Route
+    {
+          return new static($methods, $path, $callback, $name);
+    }
+
+
+
+
     /**
      * get route methods
      *

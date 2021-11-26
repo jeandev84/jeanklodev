@@ -2,7 +2,7 @@
 
 require_once __DIR__.'/../vendor/autoload.php';
 
-
+$request = new \Jan\Component\Http\Request\Request();
 $router = new \Jan\Component\Routing\Router();
 
 $router->patterns([
@@ -10,6 +10,17 @@ $router->patterns([
     'id'     =>  '[0-9]+',
     'slug'   => '[a-z\-0-9]+'
 ]);
+
+
+$options = [
+    'prefix'    => 'admin/',
+    'namespace' => 'Admin\\',
+    'name'      => 'admin.',
+    'middleware' => [
+        \App\Middleware\Authenticated::class
+    ]
+];
+
 
 $router->get( '/', 'SiteController@index', 'home');
 $router->get('/about', 'SiteController@about', 'about');
