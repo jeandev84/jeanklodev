@@ -401,5 +401,23 @@ trait RouteCollectionTrait
     {
         return $this->availableGroupOptions[$name] ?? $default;
     }
-    
+
+
+
+
+    /**
+     * @param array $params
+     * @return Route
+     * @throws RouteException
+    */
+    public function addRouteParams(array $params): Route
+    {
+        $params = $this->validateRequiredRouteArguments($params);
+
+        $route = $this->makeRoute($params['methods'], $params['path'], $params['callback'], $params['name']);
+
+        return $this->addRoute($route);
+    }
+
+
 }

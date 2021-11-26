@@ -27,23 +27,6 @@ class RouteCollection implements RouteCollectionInterface
      */
      protected $namespace;
 
-
-
-
-    /**
-     * @param array $params
-     * @return Route
-     * @throws RouteException
-    */
-    public function addRouteParams(array $params): Route
-    {
-        $params = $this->validateRequiredRouteArguments($params);
-
-        $route = $this->makeRoute($params['methods'], $params['path'], $params['callback'], $params['name']);
-
-        return $this->addRoute($route);
-    }
-    
     
 
 
@@ -59,7 +42,9 @@ class RouteCollection implements RouteCollectionInterface
      */
      public function map($methods, string $path, $callback, string $name = null): Route
      {
-           return $this->addRouteParams(compact('methods', 'path', 'callback', 'name'));
+           $route = $this->makeRoute($methods, $path, $callback, $name);
+
+           return $this->addRoute($route);
      }
 
 
@@ -158,6 +143,9 @@ class RouteCollection implements RouteCollectionInterface
     }
 
 
+
+
+
      /**
       * Create route
       *
@@ -168,7 +156,7 @@ class RouteCollection implements RouteCollectionInterface
       * @return Route
       * @throws RouteException
     */
-    public function makeRoute($methods, string $path, $callback, string $name = null): Route
+    protected function makeRoute($methods, string $path, $callback, string $name = null): Route
     {
         $methods    = $this->resolveMethods($methods);
         $path       = $this->resolvePath($path);
