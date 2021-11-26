@@ -2,14 +2,17 @@
 namespace Jan\Component\Routing;
 
 
+use Jan\Component\Routing\Contract\RouteMatchedInterface;
 use Jan\Component\Routing\Exception\RouteException;
+
+
 
 /**
  * @see Route
  *
  * @package Jan\Component\Routing
 */
-class Route
+class Route implements RouteMatchedInterface, \ArrayAccess
 {
 
 
@@ -190,6 +193,46 @@ class Route
 
 
 
+
+    /**
+     * @param $key
+     * @param null $default
+     * @return mixed|null
+    */
+    public function getOption($key, $default = null)
+    {
+        return $this->options[$key] ?? $default;
+    }
+
+
+
+    /**
+     * @return array
+    */
+    public function getOptions(): array
+    {
+        return $this->options;
+    }
+
+
+
+
+    /**
+     * Add options
+     *
+     * @param array $options
+     * @return Route
+    */
+    public function addOptions(array $options): Route
+    {
+        $this->options = array_merge($this->options, $options);
+
+        return $this;
+    }
+
+
+
+
     /**
      * set route methods
      *
@@ -326,47 +369,10 @@ class Route
 
 
 
-
     /**
      * @param string $name
      * @return Route
     */
-    public function anything(string $name): Route
-    {
-        return $this->where($name, '.*');
-    }
-
-
-
-
-    /**
-     * @param string $name
-     * @return $this|Route
-     */
-    public function whereWord(string $name): Route
-    {
-        return $this->where($name, '\w+');
-    }
-
-
-
-
-    /**
-     * @param string $name
-     * @return $this|Route
-     */
-    public function whereDigital(string $name): Route
-    {
-        return $this->where($name, '\d+');
-    }
-
-
-
-
-    /**
-     * @param string $name
-     * @return Route
-     */
     public function whereAlphaNumeric(string $name): Route
     {
         return $this->where($name, '[^a-z_\-0-9]');
@@ -383,6 +389,145 @@ class Route
         return $this->where($name, '[a-z\-0-9]+');
     }
 
+
+
+
+    /**
+     * @param string $name
+     * @return Route
+    */
+    public function anything(string $name): Route
+    {
+        return $this->where($name, '.*');
+    }
+
+
+
+    /**
+     * @param string|null $requestMethod
+     * @return bool
+    */
+    public function matchMethods(?string $requestMethod): bool
+    {
+        if (\in_array($requestMethod, $this->methods)) {
+            $this->addOptions(compact('requestMethod'));
+            return true;
+        }
+
+        return false;
+    }
+
+
+
+
+    /**
+     * Determine if the current method and path URL match route
+     *
+     * @param string $requestMethod
+     * @param string $requestUri
+     * @return bool
+     */
+    public function match(string $requestMethod, string $requestUri): bool
+    {
+        return $this->matchMethods($requestMethod) && $this->matchPath($requestUri);
+    }
+
+
+
+
+
+    /**
+     * @param string $path
+     * @return false
+    */
+    public function matchPath(string $path): bool
+    {
+         if (preg_match($pattern = $this->generatePattern(), $this->resolveURL($path), $matches)) {
+
+             $this->matches($this->filterMatchedParams($matches));
+
+             $this->addOptions(compact('pattern', 'path'));
+
+             return true;
+         }
+
+         return false;
+    }
+
+
+    /**
+     * @return string
+    */
+    public function generatePattern(): string
+    {
+          $pattern = $this->removeTrailingSlashes($this->path);
+
+          if ($this->params) {
+             $pattern = $this->replacePlaceholders($pattern, $this->params);
+          }
+
+          return '#^'. $pattern . '$#i';
+    }
+
+
+
+    /**
+     * @param array $matches
+     * @return array
+    */
+    protected function filterMatchedParams(array $matches): array
+    {
+        return array_filter($matches, function ($key) {
+
+            return ! is_numeric($key);
+
+        }, ARRAY_FILTER_USE_KEY);
+    }
+
+
+
+
+    /**
+     * get path of given URL
+     *
+     * @param string|null $path
+     * @return string
+    */
+    public function resolveURL(?string $path): string
+    {
+        if(stripos($path, '?') !== false) {
+            $path = explode('?', $path, 2)[0];
+        }
+
+        return $this->removeTrailingSlashes($path);
+    }
+
+
+
+    /**
+     * @param string $path
+     * @param array $params
+     * @return string
+    */
+    protected function replacePlaceholders(string $path, array $params): string
+    {
+        foreach ($params as $k => $v) {
+            $path = preg_replace(["#{{$k}}#", "#{{$k}.?}#"], [$v, '?'. $v .'?'], $path);
+        }
+
+        return $path;
+    }
+
+
+
+    /**
+     * @param string $path
+     * @return string
+    */
+    protected function removeTrailingSlashes(string $path): string
+    {
+        return trim($path, '\\/');
+    }
 
 
 
@@ -418,5 +563,54 @@ class Route
     protected function makePattern($name, $regex): string
     {
         return '(?P<'. $name .'>'. $this->resolveRegex($regex) . ')';
+    }
+
+
+
+    /**
+     * @param mixed $offset
+     * @return bool
+     */
+    public function offsetExists($offset)
+    {
+        return property_exists($this, $offset);
+    }
+
+
+    /**
+     * @param mixed $offset
+     * @return mixed|void
+     */
+    public function offsetGet($offset)
+    {
+        if(property_exists($this, $offset)) {
+            return $this->{$offset};
+        }
+
+        return null;
+    }
+
+
+    /**
+     * @param mixed $offset
+     * @param mixed $value
+     */
+    public function offsetSet($offset, $value)
+    {
+        if(property_exists($this, $offset)) {
+            $this->{$offset} = $value;
+        }
+    }
+
+
+
+    /**
+     * @param mixed $offset
+    */
+    public function offsetUnset($offset)
+    {
+        if(property_exists($this, $offset)) {
+            unset($this->{$offset});
+        }
     }
 }

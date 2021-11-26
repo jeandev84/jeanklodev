@@ -3,32 +3,12 @@ namespace Jan\Component\Routing\Contract;
 
 
 /**
- * @see RouterInterface
+ * @see RouteDispatcherInterface
  *
  * @package Jan\Component\Routing\Contract
 */
-interface RouterInterface
+interface RouteDispatcherInterface
 {
-
-    /**
-     * Get route collections
-     *
-     * @return mixed
-    */
-    public function getRoutes();
-
-
-
-    /**
-     * Get current route
-     *
-     * @return mixed
-    */
-    public function getRoute();
-
-
-
-
     /**
      * Dispatch route
      *

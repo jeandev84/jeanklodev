@@ -3,7 +3,6 @@ namespace Jan\Component\Routing;
 
 
 use Closure;
-use Jan\Component\Routing\Contract\RouteCollectionInterface;
 use Jan\Component\Routing\Exception\RouteException;
 
 
@@ -13,7 +12,7 @@ use Jan\Component\Routing\Exception\RouteException;
  *
  * @package Jan\Component\Routing
 */
-class RouteCollection implements RouteCollectionInterface
+class RouteCollection
 {
 
      const PX_PREFIX        = 'prefix';
@@ -83,6 +82,21 @@ class RouteCollection implements RouteCollectionInterface
 
 
     /**
+     * route default prefixes
+     *
+     * @var array
+    */
+    protected $moduleOptions = [
+        self::PX_PREFIX          => '/module',
+        self::PX_NAMESPACE       => 'Module\\',
+        self::PX_NAME            => 'default.',
+        self::PX_MIDDLEWARE      => []
+    ];
+
+
+
+
+    /**
      * Get all stored routes
      *
      * @return Route[]
@@ -99,13 +113,13 @@ class RouteCollection implements RouteCollectionInterface
       * Add route
       *
       * @param Route $route
-      * @return Route
+      * @return $this
      */
-     public function addRoute(Route $route): Route
+     public function addRoute(Route $route): RouteCollection
      {
          $this->routes[] = $route;
 
-         return $route;
+         return $this;
      }
 
 
@@ -123,33 +137,6 @@ class RouteCollection implements RouteCollectionInterface
               $this->addRoute($route);
           }
      }
-
-
-
-
-     /**
-      * Add group
-      *
-      * @param RouteGroup $group
-      * @return void
-     */
-     public function addRouteGroup(RouteGroup $group)
-     {
-          $this->groups[] = $group;
-     }
-
-
-    /**
-     * Add group
-     *
-     * @param Resource $resource
-     * @return void
-     */
-     public function addRouteResource(Resource $resource)
-     {
-          $this->resources[] = $resource;
-     }
-
 
 
 
@@ -180,35 +167,22 @@ class RouteCollection implements RouteCollectionInterface
 
 
 
+
      /**
       * Set global route patterns
       *
-      * @param $patterns
+      * @param $name
+      * @param $regex
       * @return RouteCollection
      */
-     public function patterns($patterns): RouteCollection
+     public function patterns($name, $regex = null): RouteCollection
      {
+         $patterns = \is_array($name) ? $name : [$name => $regex];
+
          $this->patterns = array_merge($this->patterns, $patterns);
 
          return $this;
      }
-
-
-
-
-    /**
-     * Set global route patterns
-     *
-     * @param $name
-     * @param $regex
-     * @return RouteCollection
-    */
-    public function pattern($name, $regex): RouteCollection
-    {
-        $this->patterns[$name] = $regex;
-
-        return $this;
-    }
 
 
 
@@ -236,21 +210,17 @@ class RouteCollection implements RouteCollectionInterface
            }
 
            $route->where($this->patterns)
-                 ->middleware($this->getPreviousRouteMiddlewares())
-                 ->addOptions($this->getRouteDefaultOptions())
-           ;
+                 ->middleware($this->getPreviousRouteMiddlewares());
 
 
-           return $this->addRoute($route);
+           $this->addRoute($route);
 
+           return $route;
      }
 
 
 
-     /**
-      * @param Closure $routes
-      * @param array $options
-     */
+
      public function group(Closure $routes, array $options)
      {
            $this->addRouteOptions($options);
@@ -259,6 +229,31 @@ class RouteCollection implements RouteCollectionInterface
 
            $this->removeRouteOptions();
      }
+
+
+
+     /**
+      * @param RouteGroup $group
+     */
+     public function addRouteGroup(RouteGroup $group)
+     {
+          $this->groups[] = $group;
+     }
+
+
+
+     public function module(Closure $closure)
+     {
+         $this->group($closure, $this->moduleOptions);
+     }
+
+
+
+     public function resource(string $path , string $controller)
+     {
+
+     }
+
 
 
 
@@ -349,18 +344,5 @@ class RouteCollection implements RouteCollectionInterface
      protected function getRoutePrefix(): ?string
      {
          return $this->getOptionValue(static::PX_PREFIX, '');
-     }
-
-
-
-     /**
-      * @return array
-     */
-     protected function getRouteDefaultOptions(): array
-     {
-         return [
-             self::PX_PREFIX     => $this->getOptionValue(self::PX_PREFIX),
-             self::PX_NAMESPACE  => $this->getOptionValue(self::PX_NAMESPACE),
-         ];
      }
 }

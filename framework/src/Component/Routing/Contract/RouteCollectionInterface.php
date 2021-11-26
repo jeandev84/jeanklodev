@@ -9,5 +9,8 @@ namespace Jan\Component\Routing\Contract;
 */
 interface RouteCollectionInterface
 {
-     public function getRoutes();
+     /**
+      * @return array
+     */
+     public function getRoutes(): array;
 }
