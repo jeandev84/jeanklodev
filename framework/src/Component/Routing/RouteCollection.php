@@ -24,9 +24,31 @@ class RouteCollection implements RouteCollectionInterface
 
 
      /**
+      * Prefix controller namespace
+      *
       * @var string
      */
      protected $namespace;
+
+
+
+
+     /**
+      * Current route
+      *
+      * @var Route
+     */
+     protected $route;
+
+
+
+
+     /**
+      * Storage named routes
+      *
+      * @var array
+     */
+     protected $namedRoutes = [];
 
 
 
@@ -82,6 +104,8 @@ class RouteCollection implements RouteCollectionInterface
 
 
 
+
+
     /**
      * Get all stored routes
      *
@@ -90,6 +114,84 @@ class RouteCollection implements RouteCollectionInterface
     public function getRoutes(): array
     {
         return $this->routes;
+    }
+
+
+
+    /**
+     * @return array
+    */
+    public function getAvailableRoutePatterns(): array
+    {
+        return $this->patterns;
+    }
+
+
+
+
+
+    /**
+     * Get current route
+     *
+     * @return Route
+    */
+    public function getRoute(): Route
+    {
+        return $this->route;
+    }
+
+
+
+    /**
+     * Get named route
+     *
+     * @param string $name
+     * @return mixed
+     * @throws RouteException
+    */
+    public function getNamedRoute(string $name)
+    {
+        if (! $this->hasNamedRoute($name)) {
+            throw new RouteException('Invalid route name : '. $name);
+        }
+
+        return $this->getNamedRoutes()[$name];
+    }
+
+
+
+
+    /**
+     * @return array
+    */
+    public function getNamedRoutes(): array
+    {
+         if (! $this->namedRoutes) {
+
+             $namedRoutes = [];
+
+             foreach ($this->getRoutes() as $route) {
+                 if ($route->getName()) {
+                     $namedRoutes[] = $route;
+                 }
+             }
+
+             $this->namedRoutes = $namedRoutes;
+         }
+
+         return $this->namedRoutes;
+    }
+
+
+
+
+    /**
+     * Set current route
+     * @param Route $route
+    */
+    public function setRoute(Route $route)
+    {
+        $this->route = $route;
     }
 
 
@@ -109,6 +211,45 @@ class RouteCollection implements RouteCollectionInterface
      }
 
 
+
+     /**
+      * @param array $params
+      * @return Route
+      * @throws RouteException
+     */
+     public function addRouteParams(array $params): Route
+     {
+          $route = $this->makeRoute($params);
+
+          return $this->addRoute($route);
+     }
+
+
+
+
+     /**
+      * Add named routes
+      *
+      * @param array $routes
+     */
+     public function addNamedRoutes(array $routes)
+     {
+         $this->namedRoutes = array_merge($this->namedRoutes, $routes);
+     }
+
+
+
+
+     /**
+      * Add named route
+      *
+      * @param $name
+      * @param Route $route
+     */
+     public function addNamedRoute($name, Route $route)
+     {
+         $this->namedRoutes[$name] = $route;
+     }
 
 
 
@@ -139,10 +280,13 @@ class RouteCollection implements RouteCollectionInterface
      }
 
 
-    /**
-     * Add group
-     *
-     * @param Resource $resource
+
+
+
+     /**
+      * Add group
+      *
+      * @param
      * @return void
      */
      public function addRouteResource(Resource $resource)
@@ -214,35 +358,64 @@ class RouteCollection implements RouteCollectionInterface
 
 
      /**
-     * Add route with given params
-     *
-     * @param $methods
-     * @param string $path
-     * @param $callback
-     * @param string|null $name
-     * @return Route
-     * @throws RouteException
+      * Create route
+      *
+      * @param array $items
+      * @return Route
+      * @throws RouteException
+     */
+     public function makeRoute(array $items): Route
+     {
+          $items = $this->validateRequiredRouteArguments($items);
+
+          $methods    = $this->resolveMethods($items['methods']);
+          $path       = $this->resolvePath($items['path']);
+          $callback   = $this->resolveCallback($items['callback']);
+          $prefix     = $this->getRouteNamePrefix();
+
+          $route = new Route($methods, $path, $callback, $prefix);
+
+          if (! empty($items['name'])) {
+             $route->name($items['name']);
+          }
+
+          $patterns = $this->getAvailableRoutePatterns();
+
+          if (! empty($items['patterns'])) {
+             $patterns = array_merge($patterns, $items['patterns']);
+          }
+
+
+          $middlewares = $this->getRouteMiddlewares();
+
+          if (! empty($items['middleware'])) {
+              $middlewares = array_merge($middlewares, $items['middleware']);
+          }
+
+
+          $route->where($patterns)
+                ->middleware($middlewares)
+                ->addOptions($this->getRouteDefaultOptions());
+
+
+          return $route;
+     }
+
+
+
+     /**
+      * Add route with given params
+      *
+      * @param $methods
+      * @param string $path
+      * @param $callback
+      * @param string|null $name
+      * @return Route
+      * @throws RouteException
      */
      public function map($methods, string $path, $callback, string $name = null): Route
      {
-           $methods  = $this->resolveMethods($methods);
-           $path     = $this->resolvePath($path);
-           $callback = $this->resolveCallback($callback);
-
-           $route = new Route($methods, $path, $callback, $this->getRoutePrefix());
-
-           if ($name) {
-               $route->name($name);
-           }
-
-           $route->where($this->patterns)
-                 ->middleware($this->getPreviousRouteMiddlewares())
-                 ->addOptions($this->getRouteDefaultOptions())
-           ;
-
-
-           return $this->addRoute($route);
-
+           return $this->addRouteParams(compact('methods', 'path', 'callback', 'name'));
      }
 
 
@@ -321,7 +494,23 @@ class RouteCollection implements RouteCollectionInterface
 
 
 
-     /**
+
+
+    /**
+     * Determine if given name route exists.
+     *
+     * @param string $name
+     * @return bool
+    */
+    protected function hasNamedRoute(string $name): bool
+    {
+        return array_key_exists($name, $this->getNamedRoutes());
+    }
+
+
+
+
+    /**
       * @param $name
       * @param null $default
       * @return mixed
@@ -336,7 +525,7 @@ class RouteCollection implements RouteCollectionInterface
      /**
       * @return array
      */
-     protected function getPreviousRouteMiddlewares(): ?array
+     protected function getRouteMiddlewares(): ?array
      {
          return $this->getOptionValue(static::PX_MIDDLEWARE, []);
      }
@@ -346,9 +535,9 @@ class RouteCollection implements RouteCollectionInterface
      /**
       * @return string
      */
-     protected function getRoutePrefix(): ?string
+     protected function getRouteNamePrefix(): ?string
      {
-         return $this->getOptionValue(static::PX_PREFIX, '');
+         return $this->getOptionValue(static::PX_NAME, '');
      }
 
 
@@ -363,4 +552,29 @@ class RouteCollection implements RouteCollectionInterface
              self::PX_NAMESPACE  => $this->getOptionValue(self::PX_NAMESPACE),
          ];
      }
+
+
+
+     /**
+      * @param array $items
+      * @return array
+     */
+     protected function validateRequiredRouteArguments(array $items): array
+     {
+        if (! isset($items['methods'])) {
+            throw new \InvalidArgumentException('argument (methods) for route must be specified.');
+        }
+
+        if (! isset($items['path'])) {
+            throw new \InvalidArgumentException('argument (path) for route must be specified.');
+        }
+
+
+        if (! isset($items['callback'])) {
+            throw new \InvalidArgumentException('argument (callback) for route must be specified.');
+        }
+
+        return $items;
+    }
+
 }

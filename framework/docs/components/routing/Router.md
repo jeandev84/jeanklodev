@@ -1,11 +1,15 @@
 # Router
 ```
+http://localhost:8000/search/something
+http://localhost:8000/user/1
+
+
 $router = new \Jan\Component\Routing\Router();
 
 $router->patterns([
-  'search' => '.*',
-  'id'     =>  '[0-9]+',
-  'slug'   => '[a-z\-0-9]+'
+    'name'   => '.*',
+    'id'     =>  '[0-9]+',
+    'slug'   => '[a-z\-0-9]+'
 ]);
 
 $request = new \Jan\Component\Http\Request\Request();
@@ -17,6 +21,9 @@ $router->map(['GET'], '/about', 'SiteController@about', 'about');
 $router->map(['GET'], '/news', 'SiteController@news', 'news');
 $router->map(['GET'], '/contact', 'SiteController@contact', 'contact');
 $router->map(['POST'], '/contact', 'SiteController@send', 'send');
+$router->get( '/search/{name}', 'SearchController@index', 'search');
+
+
 $router->map(['GET'], '/user/{id}', 'UserController@show', 'user.show')
        ->whereNumber('id')
        ->middleware(\App\Middleware\Authenticated::class);

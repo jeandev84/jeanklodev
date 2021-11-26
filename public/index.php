@@ -5,14 +5,22 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 $router = new \Jan\Component\Routing\Router();
 
+$router->patterns([
+    'name'   => '.*',
+    'id'     =>  '[0-9]+',
+    'slug'   => '[a-z\-0-9]+'
+]);
 
 $router->get( '/', 'SiteController@index', 'home');
 $router->get('/about', 'SiteController@about', 'about');
 $router->get('/news', 'SiteController@news', 'news');
 $router->get('/contact', 'SiteController@contact', 'contact');
+$router->get( '/search/{name}', 'SearchController@index', 'search');
+
 $router->post( '/contact', 'SiteController@send', 'send');
+
 $router->get( '/user/{id}', 'UserController@show', 'user.show')
-       ->whereNumber('id')
+       //->whereNumber('id')
        ->middleware(\App\Middleware\Authenticated::class);
 
 

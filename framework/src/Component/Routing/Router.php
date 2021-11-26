@@ -96,12 +96,13 @@ class Router extends RouteCollection implements RouteMatchedInterface
      *
      * @param string|null $requestMethod
      * @param string|null $requestUri
-     * @return false|Route
+     * @return Route|false
     */
     public function match(string $requestMethod, string $requestUri)
     {
         foreach ($this->getRoutes() as $route) {
             if ($route->match($requestMethod, $requestUri)) {
+                $this->setRoute($route);
                 return $route;
             }
         }
