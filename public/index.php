@@ -52,7 +52,6 @@ $router->get('/', function () {
 }, 'welcome');
 
 
-$options = [];
 $router->group(function () use ($router) {
 
     $router->get( '/users', 'UserController@list', 'list');

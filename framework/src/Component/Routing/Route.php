@@ -2,7 +2,6 @@
 namespace Jan\Component\Routing;
 
 
-use Jan\Component\Routing\Contract\RouteMatchedInterface;
 use Jan\Component\Routing\Exception\RouteException;
 
 
@@ -12,7 +11,7 @@ use Jan\Component\Routing\Exception\RouteException;
  *
  * @package Jan\Component\Routing
 */
-class Route implements RouteMatchedInterface, \ArrayAccess
+class Route implements \ArrayAccess
 {
 
 
@@ -155,6 +154,17 @@ class Route implements RouteMatchedInterface, \ArrayAccess
     public function getPath(): ?string
     {
         return $this->path;
+    }
+
+
+
+
+    /**
+     * @return string
+    */
+    public function getResolvedPath(): string
+    {
+        return $this->removeTrailingSlashes($this->path);
     }
 
 
@@ -419,6 +429,8 @@ class Route implements RouteMatchedInterface, \ArrayAccess
 
 
 
+
+
     /**
      * @param string|null $requestMethod
      * @return bool
@@ -471,15 +483,19 @@ class Route implements RouteMatchedInterface, \ArrayAccess
     }
 
 
+
+
+
+
     /**
      * @return string
     */
     public function generatePattern(): string
     {
-          $pattern = $this->removeTrailingSlashes($this->path);
+          $pattern = $this->getResolvedPath();
 
           if ($this->params) {
-             $pattern = $this->replacePlaceholders($pattern, $this->params);
+             $pattern = $this->replacePlaceholders($this->params);
           }
 
           return '#^'. $pattern . '$#i';
@@ -487,11 +503,32 @@ class Route implements RouteMatchedInterface, \ArrayAccess
 
 
 
+
+    /**
+     * Convert path parameters
+     *
+     * @param array $params
+     * @return string
+    */
+    public function replaceParams(array $params): string
+    {
+        $path = $this->getResolvedPath();
+
+        foreach ($params as $k => $v) {
+            $path = preg_replace(["#{{$k}}#", "#{{$k}.?}#"], $v, $path);
+        }
+
+        return $path;
+    }
+
+
+
+
     /**
      * @param array $matches
      * @return array
     */
-    protected function filterMatchedParams(array $matches): array
+    public function filterMatchedParams(array $matches): array
     {
         return array_filter($matches, function ($key) {
 
@@ -521,12 +558,13 @@ class Route implements RouteMatchedInterface, \ArrayAccess
 
 
     /**
-     * @param string $path
      * @param array $params
      * @return string
     */
-    protected function replacePlaceholders(string $path, array $params): string
+    public function replacePlaceholders(array $params): string
     {
+        $path = $this->getResolvedPath();
+
         foreach ($params as $k => $v) {
             $path = preg_replace(["#{{$k}}#", "#{{$k}.?}#"], [$v, '?'. $v .'?'], $path);
         }

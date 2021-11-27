@@ -3,7 +3,7 @@ namespace Jan\Component\Routing;
 
 
 use Closure;
-use Jan\Component\Routing\Common\RouteCollectionStack;
+use Jan\Component\Routing\Common\RouteCollectionHandler;
 use Jan\Component\Routing\Contract\RouteCollectionInterface;
 use Jan\Component\Routing\Exception\RouteException;
 
@@ -14,7 +14,7 @@ use Jan\Component\Routing\Exception\RouteException;
  *
  * @package Jan\Component\Routing
 */
-class RouteCollection extends RouteCollectionStack implements RouteCollectionInterface
+class RouteCollection extends RouteCollectionHandler
 {
 
      /**

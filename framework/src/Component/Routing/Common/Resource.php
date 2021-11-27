@@ -1,11 +1,11 @@
 <?php
-namespace Jan\Component\Routing;
+namespace Jan\Component\Routing\Common;
 
 
 /**
  * @see Resource
  *
- * @package Jan\Component\Routing
+ * @package Jan\Component\Routing\Common
 */
 abstract class Resource
 {

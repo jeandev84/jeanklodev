@@ -1,6 +1,7 @@
 <?php
 namespace Jan\Component\Routing\Common;
 
+use Jan\Component\Routing\Contract\RouteCollectionInterface;
 use Jan\Component\Routing\Exception\RouteException;
 use Jan\Component\Routing\Resource;
 use Jan\Component\Routing\Route;
@@ -8,12 +9,13 @@ use Jan\Component\Routing\RouteCollection;
 use Jan\Component\Routing\RouteGroup;
 
 
+
 /**
- * @see RouteCollectionStack
+ * @see RouteCollectionHandler
  *
  * @package Jan\Component\Routing\Common
 */
-abstract class RouteCollectionStack
+abstract class RouteCollectionHandler implements RouteCollectionInterface
 {
 
 
@@ -160,10 +162,10 @@ abstract class RouteCollectionStack
      * Get named route
      *
      * @param string $name
-     * @return mixed
+     * @return Route
      * @throws RouteException
-     */
-    public function getNamedRoute(string $name)
+    */
+    public function getNamedRoute(string $name): Route
     {
         if (! $this->hasNamedRoute($name)) {
             throw new RouteException('Invalid route name : '. $name);

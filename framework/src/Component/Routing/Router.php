@@ -3,6 +3,7 @@ namespace Jan\Component\Routing;
 
 
 use Jan\Component\Routing\Contract\RouteMatchedInterface;
+use Jan\Component\Routing\Contract\RouterInterface;
 use Jan\Component\Routing\Exception\RouteException;
 
 
@@ -11,8 +12,45 @@ use Jan\Component\Routing\Exception\RouteException;
  *
  * @package Jan\Component\Routing
 */
-class Router extends RouteCollection implements RouteMatchedInterface
+class Router extends RouteCollection implements RouterInterface
 {
+
+
+    /**
+     * @var string
+    */
+    protected $baseURL;
+
+
+
+
+    /**
+     * Router constructor.
+     *
+     * @param string|null $baseURL
+    */
+    public function __construct(string $baseURL = null)
+    {
+        if ($baseURL) {
+            $this->setURL($baseURL);
+        }
+    }
+
+
+
+    /**
+     * @param string $baseURL
+     * @return Router
+    */
+    public function setURL(string $baseURL): Router
+    {
+        $this->baseURL = rtrim($baseURL, '/');
+
+        return $this;
+    }
+
+
+
 
     /**
      * @param string $path
@@ -102,7 +140,6 @@ class Router extends RouteCollection implements RouteMatchedInterface
     {
         foreach ($this->getRoutes() as $route) {
             if ($route->match($requestMethod, $requestUri)) {
-                $this->setRoute($route);
                 return $route;
             }
         }
@@ -112,15 +149,15 @@ class Router extends RouteCollection implements RouteMatchedInterface
 
 
 
+
     /**
      * @param string $name
      * @param array $parameters
      * @return string
+     * @throws RouteException
     */
     public function generate(string $name, array $parameters = []): string
     {
-        // TODO: Implement generate() method.
-
-        return '';
+        return $this->baseURL . '/'. $this->getNamedRoute($name)->replaceParams($parameters);
     }
 }

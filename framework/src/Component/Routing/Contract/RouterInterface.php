@@ -30,11 +30,12 @@ interface RouterInterface
 
 
     /**
-     * Dispatch route
+     * Determine if the current method and path URL match route
      *
      * @param string $requestMethod
      * @param string $requestUri
      * @return mixed
     */
-    public function dispatch(string $requestMethod, string $requestUri);
+    public function match(string $requestMethod, string $requestUri);
+
 }
