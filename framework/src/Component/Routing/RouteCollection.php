@@ -27,10 +27,28 @@ class RouteCollection implements RouteCollectionInterface
      */
      protected $namespace;
 
-    
+
+
 
 
     /**
+     * @param array $params
+     * @return Route
+     * @throws RouteException
+    */
+    public function add(array $params): Route
+    {
+        $params = $this->validateRequiredRouteArguments($params);
+
+        $route = $this->makeRoute($params['methods'], $params['path'], $params['callback'], $params['name']);
+
+        return $this->addRoute($route);
+    }
+
+
+
+
+     /**
       * Add route with given params
       *
       * @param $methods
@@ -56,7 +74,7 @@ class RouteCollection implements RouteCollectionInterface
       * @param Closure $routes
       * @param array $options
      */
-     public function group(Closure $routes, array $options)
+     public function group(Closure $routes, array $options = [])
      {
            $group = new RouteGroup($routes);
 
@@ -72,7 +90,63 @@ class RouteCollection implements RouteCollectionInterface
 
 
 
-     /**
+    /**
+     * @param string $prefix
+     * @return $this
+    */
+    public function prefix(string $prefix): RouteCollection
+    {
+        $this->addRouteOptions(compact('prefix'));
+
+        return $this;
+    }
+
+
+
+    /**
+     * @param string $namespace
+     * @return $this
+    */
+    public function namespace(string $namespace): RouteCollection
+    {
+        $this->addRouteOptions(compact('namespace'));
+
+        return $this;
+    }
+
+
+
+    /**
+     * @param string $middleware
+     * @return $this
+     */
+    public function middleware(string $middleware): RouteCollection
+    {
+        $this->addRouteOptions(compact('middleware'));
+
+        return $this;
+    }
+
+
+
+
+    /**
+     * @param string $name
+     * @return $this
+    */
+    public function name(string $name): RouteCollection
+    {
+        $this->addRouteOptions(compact('name'));
+
+        return $this;
+    }
+
+
+
+
+
+
+    /**
       * Resolve methods
       *
       * @param $methods
@@ -127,21 +201,6 @@ class RouteCollection implements RouteCollectionInterface
 
          return $callback;
      }
-
-
-
-    
-    /**
-     * @return array
-     */
-    protected function getRouteDefaultOptions(): array
-    {
-        return [
-            'prefix'     => $this->getOptionValue('prefix'),
-            'namespace'  => $this->getOptionValue('namespace'),
-        ];
-    }
-
 
 
 
@@ -200,6 +259,19 @@ class RouteCollection implements RouteCollectionInterface
         }
 
         return $items;
+    }
+
+
+
+    /**
+     * @return array
+    */
+    protected function getRouteDefaultOptions(): array
+    {
+        return [
+            'prefix'     => $this->getOptionValue('prefix'),
+            'namespace'  => $this->getOptionValue('namespace'),
+        ];
     }
 
 }

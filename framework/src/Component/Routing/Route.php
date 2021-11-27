@@ -53,10 +53,10 @@ class Route implements RouteMatchedInterface, \ArrayAccess
 
 
     /**
-     * route regex params
+     * route patterns
      *
      * @var array
-     */
+    */
     protected $params = [];
 
 
