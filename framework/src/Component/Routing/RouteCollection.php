@@ -67,20 +67,20 @@ class RouteCollection extends RouteCollectionHandler
 
 
 
-
      /**
       * Add route group
       *
       * @param Closure $routes
       * @param array $options
+      * @throws \Exception
      */
      public function group(Closure $routes, array $options = [])
      {
-           $group = new RouteGroup($routes);
+           $group = new RouteGroup($routes, $options);
 
            $this->addRouteOptions($options);
 
-           $group->call();
+           $group->call($this);
 
            $this->addRouteGroup($group);
 
