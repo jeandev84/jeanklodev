@@ -3,7 +3,7 @@ namespace Jan\Component\Routing;
 
 
 use Closure;
-use Jan\Component\Routing\Common\RouteCollectionTrait;
+use Jan\Component\Routing\Common\RouteCollectionStack;
 use Jan\Component\Routing\Contract\RouteCollectionInterface;
 use Jan\Component\Routing\Exception\RouteException;
 
@@ -14,11 +14,8 @@ use Jan\Component\Routing\Exception\RouteException;
  *
  * @package Jan\Component\Routing
 */
-class RouteCollection implements RouteCollectionInterface
+class RouteCollection extends RouteCollectionStack implements RouteCollectionInterface
 {
-    
-     use RouteCollectionTrait;
-     
 
      /**
       * Prefix controller namespace
@@ -30,20 +27,23 @@ class RouteCollection implements RouteCollectionInterface
 
 
 
+     /**
+      * @param string $namespace
+     */
+     public function setControllerNamespace(string $namespace)
+     {
+          $this->namespace = $namespace;
+     }
 
-    /**
-     * @param array $params
-     * @return Route
-     * @throws RouteException
-    */
-    public function add(array $params): Route
-    {
-        $params = $this->validateRequiredRouteArguments($params);
 
-        $route = $this->makeRoute($params['methods'], $params['path'], $params['callback'], $params['name']);
 
-        return $this->addRoute($route);
-    }
+     /**
+      * @return string
+     */
+     public function getControllerNamespace(): string
+     {
+         return $this->namespace;
+     }
 
 
 
@@ -119,7 +119,7 @@ class RouteCollection implements RouteCollectionInterface
     /**
      * @param string $middleware
      * @return $this
-     */
+    */
     public function middleware(string $middleware): RouteCollection
     {
         $this->addRouteOptions(compact('middleware'));
@@ -140,8 +140,6 @@ class RouteCollection implements RouteCollectionInterface
 
         return $this;
     }
-
-
 
 
 
@@ -201,77 +199,5 @@ class RouteCollection implements RouteCollectionInterface
 
          return $callback;
      }
-
-
-
-
-     /**
-      * Create route
-      *
-      * @param $methods
-      * @param string $path
-      * @param $callback
-      * @param string|null $name
-      * @return Route
-      * @throws RouteException
-    */
-    protected function makeRoute($methods, string $path, $callback, string $name = null): Route
-    {
-        $methods    = $this->resolveMethods($methods);
-        $path       = $this->resolvePath($path);
-        $callback   = $this->resolveCallback($callback);
-        $nameGroup  = $this->getRouteNameGroup();
-
-        $route = new Route($methods, $path, $callback, $nameGroup);
-
-        if ($name) {
-            $route->name($name);
-        }
-
-        $route->where($this->getAvailableRoutePatterns())
-              ->middleware($this->getRouteGroupMiddlewares())
-              ->addOptions($this->getRouteDefaultOptions());
-
-
-        return $route;
-    }
-
-
-
-
-    /**
-     * @param array $items
-     * @return array
-    */
-    protected function validateRequiredRouteArguments(array $items): array
-    {
-        if (! isset($items['methods'])) {
-            throw new \InvalidArgumentException('argument (methods) for route must be specified.');
-        }
-
-        if (! isset($items['path'])) {
-            throw new \InvalidArgumentException('argument (path) for route must be specified.');
-        }
-
-
-        if (! isset($items['callback'])) {
-            throw new \InvalidArgumentException('argument (callback) for route must be specified.');
-        }
-
-        return $items;
-    }
-
-
-
-    /**
-     * @return array
-    */
-    protected function getRouteDefaultOptions(): array
-    {
-        return [
-            'prefix'     => $this->getOptionValue('prefix'),
-            'namespace'  => $this->getOptionValue('namespace'),
-        ];
-    }
 
 }

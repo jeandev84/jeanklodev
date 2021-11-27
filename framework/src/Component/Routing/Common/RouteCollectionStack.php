@@ -9,22 +9,12 @@ use Jan\Component\Routing\RouteGroup;
 
 
 /**
- * @see
+ * @see RouteCollectionStack
  *
  * @package Jan\Component\Routing\Common
 */
-trait RouteCollectionTrait
+abstract class RouteCollectionStack
 {
-
-
-    /**
-     * Current route
-     *
-     * @var Route
-    */
-    protected $route;
-
-
 
 
     /**
@@ -39,8 +29,8 @@ trait RouteCollectionTrait
     /**
      * Storage routes
      *
-     * @var array
-     */
+     * @var Route[]
+    */
     protected $routes = [];
 
 
@@ -48,8 +38,8 @@ trait RouteCollectionTrait
     /**
      * Storage routes group
      *
-     * @var array
-     */
+     * @var RouteGroup[]
+    */
     protected $groups = [];
 
 
@@ -57,7 +47,7 @@ trait RouteCollectionTrait
     /**
      * Storage routes resources
      *
-     * @var array
+     * @var Resource[]
     */
     protected $resources = [];
 
@@ -78,8 +68,8 @@ trait RouteCollectionTrait
      * route prefixes
      *
      * @var array
-     */
-    protected $availableGroupOptions = [
+    */
+    protected $availableOptions = [
         'prefix'     => '',
         'namespace'  => '',
         'name'       => '',
@@ -222,6 +212,23 @@ trait RouteCollectionTrait
 
 
     /**
+     * @param array $params
+     * @return Route
+     * @throws RouteException
+    */
+    public function add(array $params): Route
+    {
+        $params = $this->validateRequiredRouteArguments($params);
+
+        $route = $this->makeRoute($params['methods'], $params['path'], $params['callback'], $params['name']);
+
+        return $this->addRoute($route);
+    }
+
+
+
+
+    /**
      * Add route
      *
      * @param Route $route
@@ -232,16 +239,6 @@ trait RouteCollectionTrait
         $this->routes[] = $route;
 
         return $route;
-    }
-
-
-
-    /**
-     * @param array $options
-     */
-    public function addRouteGroupOptions(array $options)
-    {
-        // TODO implements
     }
 
 
@@ -269,9 +266,6 @@ trait RouteCollectionTrait
     {
         $this->namedRoutes[$name] = $route;
     }
-
-
-
 
 
 
@@ -324,10 +318,10 @@ trait RouteCollectionTrait
      *
      * @param array $options
      * @return $this
-     */
+    */
     public function addRouteOptions(array $options): RouteCollection
     {
-        $this->availableGroupOptions = array_merge($this->availableGroupOptions, $options);
+        $this->availableOptions = array_merge($this->availableOptions, $options);
 
         return $this;
     }
@@ -341,7 +335,7 @@ trait RouteCollectionTrait
      */
     public function removeRouteOptions()
     {
-        $this->availableGroupOptions = [];
+        $this->availableOptions = [];
     }
 
 
@@ -376,8 +370,70 @@ trait RouteCollectionTrait
     }
 
 
-    
-    
+
+    /**
+     * Create route
+     *
+     * @param $methods
+     * @param string $path
+     * @param $callback
+     * @param string|null $name
+     * @return Route
+     * @throws RouteException
+    */
+    public function makeRoute($methods, string $path, $callback, string $name = null): Route
+    {
+        $methods    = $this->resolveMethods($methods);
+        $path       = $this->resolvePath($path);
+        $callback   = $this->resolveCallback($callback);
+        $nameGroup  = $this->getRouteNameGroup();
+
+        $route = new Route($methods, $path, $callback, $nameGroup);
+
+        if ($name) {
+            $route->name($name);
+        }
+
+        $route->where($this->getAvailableRoutePatterns())
+              ->middleware($this->getRouteGroupMiddlewares())
+              ->addOptions($this->getRouteDefaultOptions());
+
+
+        return $route;
+    }
+
+
+
+    /**
+     * Resolve methods
+     *
+     * @param $methods
+     * @return mixed
+    */
+    abstract protected function resolveMethods($methods);
+
+
+
+    /**
+     * Resolve path
+     *
+     * @param $path
+     * @return mixed
+    */
+    abstract protected function resolvePath($path);
+
+
+
+    /**
+     * Resolve callback
+     *
+     * @param $callback
+     * @return mixed
+    */
+    abstract protected function resolveCallback($callback);
+
+
+
     /**
      * Determine if given name route exists.
      *
@@ -399,7 +455,44 @@ trait RouteCollectionTrait
      */
     protected function getOptionValue($name, $default = null)
     {
-        return $this->availableGroupOptions[$name] ?? $default;
+        return $this->availableOptions[$name] ?? $default;
     }
 
+
+
+
+    /**
+     * @return array
+    */
+    protected function getRouteDefaultOptions(): array
+    {
+        return [
+            'prefix'     => $this->getOptionValue('prefix'),
+            'namespace'  => $this->getOptionValue('namespace'),
+        ];
+    }
+
+
+
+    /**
+     * @param array $items
+     * @return array
+    */
+    protected function validateRequiredRouteArguments(array $items): array
+    {
+        if (! isset($items['methods'])) {
+            throw new \InvalidArgumentException('argument (methods) for route must be specified.');
+        }
+
+        if (! isset($items['path'])) {
+            throw new \InvalidArgumentException('argument (path) for route must be specified.');
+        }
+
+
+        if (! isset($items['callback'])) {
+            throw new \InvalidArgumentException('argument (callback) for route must be specified.');
+        }
+
+        return $items;
+    }
 }
