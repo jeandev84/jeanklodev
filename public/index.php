@@ -54,13 +54,13 @@ $router->get('/', function () {
 
 $router->group(function () use ($router) {
 
-    $router->get( '/users', 'UserController@list', 'list');
-    $router->get( '/user/{id}', 'UserController@show', 'show');
-    $router->post( '/user', 'UserController@create', 'create');
-    $router->put( '/user/{id}', 'UserController@edit', 'edit')
+    $router->get( '/users', 'UserController@list', 'user.list');
+    $router->get( '/user/{id}', 'UserController@show', 'user.show');
+    $router->post( '/user', 'UserController@create', 'user.create');
+    $router->put( '/user/{id}', 'UserController@edit', 'user.edit')
            ->middleware(\App\Middleware\GuardMiddleware::class);
 
-    $router->delete('/user/{id}', 'UserController@delete', 'delete');
+    $router->delete('/user/{id}', 'UserController@delete', 'user.delete');
 
 }, $options);
 
@@ -74,6 +74,9 @@ if (! $router->match($request->getMethod(), $path = $request->getPath())) {
     dd('Route ( '. $path .' ) not found.');
 }
 
-dump($router->getRoute());
+dump($router->getCurrentRoute());
+
+echo 'GENERATED URL : '. $router->generate('admin.user.show', ['id' => 3]);
+
 
 

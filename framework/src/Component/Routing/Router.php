@@ -2,7 +2,6 @@
 namespace Jan\Component\Routing;
 
 
-use Jan\Component\Routing\Contract\RouteMatchedInterface;
 use Jan\Component\Routing\Contract\RouterInterface;
 use Jan\Component\Routing\Exception\RouteException;
 
@@ -17,10 +16,20 @@ class Router extends RouteCollection implements RouterInterface
 
 
     /**
+     * Base URL
+     *
      * @var string
     */
     protected $baseURL;
 
+
+
+    /**
+     * Get current route
+     *
+     * @var Route
+    */
+    protected $route;
 
 
 
@@ -52,79 +61,53 @@ class Router extends RouteCollection implements RouterInterface
 
 
 
+
     /**
-     * @param string $path
-     * @param $callback
-     * @param string|null $name
-     * @return Route
-     * @throws RouteException
+     * @return string
     */
-    public function get(string $path, $callback, string $name = null): Route
+    public function getURL(): string
     {
-        return $this->map('GET', $path, $callback, $name);
+        return $this->baseURL;
     }
 
 
 
-
     /**
-     * @param string $path
-     * @param $callback
-     * @param string|null $name
-     * @return Route
-     * @throws RouteException
-    */
-    public function post(string $path, $callback, string $name = null): Route
-    {
-        return $this->map('POST', $path, $callback, $name);
-    }
-
-
-
-
-
-    /**
-     * @param string $path
-     * @param $callback
-     * @param string|null $name
-     * @return Route
-     * @throws RouteException
-    */
-    public function put(string $path, $callback, string $name = null): Route
-    {
-        return $this->map('PUT', $path, $callback, $name);
-    }
-
-
-
-
-    /**
-     * Add route called by method PATCH
+     * Get current route
      *
-     * @param string $path
-     * @param $callback
      * @param string|null $name
      * @return Route
      * @throws RouteException
     */
-    public function patch(string $path, $callback, string $name = null): Route
+    public function getRoute(string $name): Route
     {
-        return $this->map('PATCH', $path, $callback, $name);
+        if(! $this->has($name)) {
+            throw new RouteException('Invalid route name : '. $name);
+        }
+
+        return $this->getNamedRoutes()[$name];
     }
 
 
 
+    /**
+     * Set current route
+     * @param Route $route
+    */
+    public function setCurrentRoute(Route $route)
+    {
+         $this->route = $route;
+    }
+
 
     /**
-     * @param string $path
-     * @param $callback
-     * @param string|null $name
+     * Get current route
+     *
      * @return Route
-     * @throws RouteException
     */
-    public function delete(string $path, $callback, string $name = null): Route
+    public function getCurrentRoute(): Route
     {
-        return $this->map('DELETE', $path, $callback, $name);
+        return $this->route;
     }
 
 
@@ -140,6 +123,7 @@ class Router extends RouteCollection implements RouterInterface
     {
         foreach ($this->getRoutes() as $route) {
             if ($route->match($requestMethod, $requestUri)) {
+                $this->setCurrentRoute($route);
                 return $route;
             }
         }
@@ -158,6 +142,6 @@ class Router extends RouteCollection implements RouterInterface
     */
     public function generate(string $name, array $parameters = []): string
     {
-        return $this->baseURL . '/'. $this->getNamedRoute($name)->replaceParams($parameters);
+        return $this->baseURL . '/'. $this->getRoute($name)->replaceParams($parameters);
     }
 }

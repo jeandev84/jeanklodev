@@ -4,6 +4,8 @@ namespace Jan\Component\Routing;
 use http\Exception\InvalidArgumentException;
 use Jan\Component\Routing\Exception\RouteException;
 
+
+
 /**
  * @see RouteGroup
  *
@@ -19,12 +21,17 @@ class RouteGroup
 
 
 
+     /**
+      * @var array
+     */
+     protected $routes = [];
+
+
 
      /**
       * @var array
      */
      protected $options = [];
-
 
 
 
@@ -35,6 +42,10 @@ class RouteGroup
      */
      public function __construct(\Closure $callback, array $options)
      {
+         if (! isset($options['namespace'])) {
+              throw new RouteException('Option (namespace) is required for routes group.');
+         }
+
          $this->callback = $callback;
          $this->options  = $options;
      }
@@ -48,6 +59,19 @@ class RouteGroup
      public function call(RouteCollection $collection)
      {
           call_user_func($this->callback);
+
+          $this->routes = $this->filteredRoutes($collection);
+     }
+
+
+
+
+     /**
+      * @return array
+     */
+     public function getRoutes(): array
+     {
+          return $this->routes;
      }
 
 
@@ -58,5 +82,24 @@ class RouteGroup
      public function getOptions(): array
      {
          return $this->options;
+     }
+
+
+
+     /**
+      * @param RouteCollection $collection
+      * @return array
+     */
+     protected function filteredRoutes(RouteCollection $collection): array
+     {
+           $groupRoutes = [];
+
+           foreach ($collection->getRoutes() as $route) {
+                if ($route->getOption('namespace') == $this->options['namespace']) {
+                    $groupRoutes[] = $route;
+                }
+           }
+
+           return $groupRoutes;
      }
 }

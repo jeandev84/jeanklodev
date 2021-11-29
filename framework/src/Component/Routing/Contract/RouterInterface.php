@@ -19,12 +19,13 @@ interface RouterInterface
 
 
 
+
     /**
      * Get current route
      *
      * @return mixed
     */
-    public function getRoute();
+    public function getCurrentRoute();
 
 
 

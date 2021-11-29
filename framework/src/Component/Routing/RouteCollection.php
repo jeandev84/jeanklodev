@@ -3,7 +3,7 @@ namespace Jan\Component\Routing;
 
 
 use Closure;
-use Jan\Component\Routing\Common\RouteCollectionHandler;
+use Jan\Component\Routing\Common\RouteCollectionManager;
 use Jan\Component\Routing\Contract\RouteCollectionInterface;
 use Jan\Component\Routing\Exception\RouteException;
 
@@ -14,7 +14,7 @@ use Jan\Component\Routing\Exception\RouteException;
  *
  * @package Jan\Component\Routing
 */
-class RouteCollection extends RouteCollectionHandler
+class RouteCollection extends RouteCollectionManager
 {
 
      /**
@@ -60,14 +60,93 @@ class RouteCollection extends RouteCollectionHandler
      */
      public function map($methods, string $path, $callback, string $name = null): Route
      {
-           $route = $this->makeRoute($methods, $path, $callback, $name);
+           $route = $this->makeRoute(compact('methods', 'path', 'callback', 'name'));
 
            return $this->addRoute($route);
      }
 
 
 
-     /**
+
+    /**
+     * @param string $path
+     * @param $callback
+     * @param string|null $name
+     * @return Route
+     * @throws RouteException
+    */
+    public function get(string $path, $callback, string $name = null): Route
+    {
+        return $this->map('GET', $path, $callback, $name);
+    }
+
+
+
+
+    /**
+     * @param string $path
+     * @param $callback
+     * @param string|null $name
+     * @return Route
+     * @throws RouteException
+     */
+    public function post(string $path, $callback, string $name = null): Route
+    {
+        return $this->map('POST', $path, $callback, $name);
+    }
+
+
+
+
+
+    /**
+     * @param string $path
+     * @param $callback
+     * @param string|null $name
+     * @return Route
+     * @throws RouteException
+    */
+    public function put(string $path, $callback, string $name = null): Route
+    {
+        return $this->map('PUT', $path, $callback, $name);
+    }
+
+
+
+
+    /**
+     * Add route called by method PATCH
+     *
+     * @param string $path
+     * @param $callback
+     * @param string|null $name
+     * @return Route
+     * @throws RouteException
+    */
+    public function patch(string $path, $callback, string $name = null): Route
+    {
+        return $this->map('PATCH', $path, $callback, $name);
+    }
+
+
+
+
+    /**
+     * @param string $path
+     * @param $callback
+     * @param string|null $name
+     * @return Route
+     * @throws RouteException
+    */
+    public function delete(string $path, $callback, string $name = null): Route
+    {
+        return $this->map('DELETE', $path, $callback, $name);
+    }
+
+
+
+
+    /**
       * Add route group
       *
       * @param Closure $routes

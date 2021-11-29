@@ -3,7 +3,6 @@ namespace Jan\Component\Routing\Common;
 
 use Jan\Component\Routing\Contract\RouteCollectionInterface;
 use Jan\Component\Routing\Exception\RouteException;
-use Jan\Component\Routing\Resource;
 use Jan\Component\Routing\Route;
 use Jan\Component\Routing\RouteCollection;
 use Jan\Component\Routing\RouteGroup;
@@ -11,11 +10,11 @@ use Jan\Component\Routing\RouteGroup;
 
 
 /**
- * @see RouteCollectionHandler
+ * @see RouteCollectionManager
  *
  * @package Jan\Component\Routing\Common
 */
-abstract class RouteCollectionHandler implements RouteCollectionInterface
+abstract class RouteCollectionManager implements RouteCollectionInterface
 {
 
 
@@ -79,14 +78,16 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
     ];
 
 
+
     
     /**
      * @return mixed|null
     */
     protected function getRoutePrefix()
     {
-         return $this->getOptionValue('prefix');
+         return $this->getOption('prefix');
     }
+
 
 
     /**
@@ -94,7 +95,7 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
     */
     protected function getRouteNamespace()
     {
-         return $this->getOptionValue('namespace');
+         return $this->getOption('namespace');
     }
 
 
@@ -105,7 +106,7 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
     */
     protected function getRouteNameGroup(): ?string
     {
-        return $this->getOptionValue('name', '');
+        return $this->getOption('name', '');
     }
 
 
@@ -114,9 +115,9 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
     /**
      * @return array
     */
-    protected function getRouteGroupMiddlewares(): ?array
+    protected function getGlobalMiddlewares(): ?array
     {
-        return $this->getOptionValue('middleware', []);
+        return $this->getOption('middleware', []);
     }
 
     
@@ -136,63 +137,26 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
     /**
      * @return array
      */
-    public function getAvailableRoutePatterns(): array
+    public function getGlobalPatterns(): array
     {
         return $this->patterns;
     }
 
 
 
-
-
-    /**
-     * Get current route
-     *
-     * @return Route
-     */
-    public function getRoute(): Route
-    {
-        return $this->route;
-    }
-
-
-
-
-    /**
-     * Get named route
-     *
-     * @param string $name
-     * @return Route
-     * @throws RouteException
-    */
-    public function getNamedRoute(string $name): Route
-    {
-        if (! $this->hasNamedRoute($name)) {
-            throw new RouteException('Invalid route name : '. $name);
-        }
-
-        return $this->getNamedRoutes()[$name];
-    }
-
-
-
-
     /**
      * @return array
-     */
+    */
     public function getNamedRoutes(): array
     {
-        if (! $this->namedRoutes) {
+        $routes = array_filter($this->getRoutes(), function ($route) {
+            return ! is_null($route->getName());
+        });
 
-            $namedRoutes = [];
-
-            foreach ($this->getRoutes() as $route) {
-                if ($route->getName()) {
-                    $namedRoutes[] = $route;
-                }
-            }
-
-            $this->namedRoutes = $namedRoutes;
+        if ($routes) {
+           foreach ($routes as $route) {
+               $this->namedRoutes[$route->getName()] = $route;
+           }
         }
 
         return $this->namedRoutes;
@@ -201,30 +165,31 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
 
 
 
+
     /**
-     * Set current route
-     * @param Route $route
-     */
-    public function setRoute(Route $route)
+     * Determine if given name route exists.
+     *
+     * @param string $name
+     * @return bool
+    */
+    protected function has(string $name): bool
     {
-        $this->route = $route;
+        return array_key_exists($name, $this->getNamedRoutes());
     }
 
 
 
 
     /**
-     * @param array $params
+     * @param $name
+     * @param Route $route
      * @return Route
-     * @throws RouteException
     */
-    public function add(array $params): Route
+    public function add($name, Route $route): Route
     {
-        $params = $this->validateRequiredRouteArguments($params);
+         $this->namedRoutes[$name] = $route;
 
-        $route = $this->makeRoute($params['methods'], $params['path'], $params['callback'], $params['name']);
-
-        return $this->addRoute($route);
+         return $this->addRoute($route);
     }
 
 
@@ -235,40 +200,13 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
      *
      * @param Route $route
      * @return Route
-     */
+    */
     public function addRoute(Route $route): Route
     {
         $this->routes[] = $route;
 
         return $route;
     }
-
-
-
-    /**
-     * Add named routes
-     *
-     * @param array $routes
-     */
-    public function addNamedRoutes(array $routes)
-    {
-        $this->namedRoutes = array_merge($this->namedRoutes, $routes);
-    }
-
-
-
-
-    /**
-     * Add named route
-     *
-     * @param $name
-     * @param Route $route
-     */
-    public function addNamedRoute($name, Route $route)
-    {
-        $this->namedRoutes[$name] = $route;
-    }
-
 
 
     /**
@@ -313,15 +251,13 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
     }
 
 
-
-
     /**
      * Add route options
      *
      * @param array $options
      * @return $this
     */
-    public function addRouteOptions(array $options): RouteCollection
+    public function addRouteOptions(array $options): self
     {
         $this->availableOptions = array_merge($this->availableOptions, $options);
 
@@ -376,33 +312,33 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
     /**
      * Create route
      *
-     * @param $methods
-     * @param string $path
-     * @param $callback
-     * @param string|null $name
+     * @param array $params
      * @return Route
      * @throws RouteException
     */
-    public function makeRoute($methods, string $path, $callback, string $name = null): Route
+    public function makeRoute(array $params): Route
     {
-        $methods    = $this->resolveMethods($methods);
-        $path       = $this->resolvePath($path);
-        $callback   = $this->resolveCallback($callback);
+        $params = $this->validateRequiredRouteArguments($params);
+
+        $methods    = $this->resolveMethods($params['methods']);
+        $path       = $this->resolvePath($params['path']);
+        $callback   = $this->resolveCallback($params['callback']);
         $nameGroup  = $this->getRouteNameGroup();
 
         $route = new Route($methods, $path, $callback, $nameGroup);
 
-        if ($name) {
-            $route->name($name);
+        if (isset($params['name'])) {
+            $route->name($params['name']);
         }
 
-        $route->where($this->getAvailableRoutePatterns())
-              ->middleware($this->getRouteGroupMiddlewares())
-              ->addOptions($this->getRouteDefaultOptions());
+        $route->where($this->getGlobalPatterns())
+              ->middleware($this->getGlobalMiddlewares())
+              ->addOptions($this->getDefaultOptions());
 
 
         return $route;
     }
+
 
 
 
@@ -436,26 +372,13 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
 
 
 
-    /**
-     * Determine if given name route exists.
-     *
-     * @param string $name
-     * @return bool
-     */
-    protected function hasNamedRoute(string $name): bool
-    {
-        return array_key_exists($name, $this->getNamedRoutes());
-    }
-
-
-
 
     /**
      * @param $name
      * @param null $default
      * @return mixed
      */
-    protected function getOptionValue($name, $default = null)
+    protected function getOption($name, $default = null)
     {
         return $this->availableOptions[$name] ?? $default;
     }
@@ -466,11 +389,11 @@ abstract class RouteCollectionHandler implements RouteCollectionInterface
     /**
      * @return array
     */
-    protected function getRouteDefaultOptions(): array
+    protected function getDefaultOptions(): array
     {
         return [
-            'prefix'     => $this->getOptionValue('prefix'),
-            'namespace'  => $this->getOptionValue('namespace'),
+            'prefix'     => $this->getOption('prefix'),
+            'namespace'  => $this->getOption('namespace'),
         ];
     }
 
