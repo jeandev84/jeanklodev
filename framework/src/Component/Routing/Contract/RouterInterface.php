@@ -25,7 +25,7 @@ interface RouterInterface
      *
      * @return mixed
     */
-    public function getCurrentRoute();
+    public function getRoute();
 
 
 
@@ -34,9 +34,19 @@ interface RouterInterface
      * Determine if the current method and path URL match route
      *
      * @param string $requestMethod
-     * @param string $requestUri
+     * @param string $requestPath
      * @return mixed
     */
-    public function match(string $requestMethod, string $requestUri);
+    public function match(string $requestMethod, string $requestPath);
+
+
+
+
+    /**
+     * @param string $name
+     * @param array $parameters
+     * @return mixed
+    */
+    public function generate(string $name, array $parameters = []);
 
 }

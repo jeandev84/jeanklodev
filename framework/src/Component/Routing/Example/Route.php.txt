@@ -89,6 +89,16 @@ class Route implements \ArrayAccess
 
 
 
+
+    /**
+     * named routes collection
+     *
+     * @var array
+    */
+    public static $collectNamed = [];
+
+
+
     /**
      * Route constructor
      *
@@ -109,6 +119,21 @@ class Route implements \ArrayAccess
 
 
     /**
+     * @param array $methods
+     * @param string|null $path
+     * @param null $callback
+     * @param string|null $name
+     * @return Route
+    */
+    public static function make(array $methods = [], string $path = null, $callback = null, string $name = null): Route
+    {
+          return new static($methods, $path, $callback, $name);
+    }
+
+
+
+
+    /**
      * get route methods
      *
      * @return array
@@ -116,16 +141,6 @@ class Route implements \ArrayAccess
     public function getMethods(): array
     {
         return $this->methods;
-    }
-
-
-
-    /**
-     * @return string
-    */
-    public function getMethodsAsString(): string
-    {
-        return implode('|', $this->methods);
     }
 
 
@@ -315,10 +330,19 @@ class Route implements \ArrayAccess
      *
      * @param string|null $name
      * @return Route
+     * @throws RouteException
     */
     public function name(string $name): Route
     {
-        $this->name .= $name;
+        $name = $this->name . $name;
+
+        if (\array_key_exists($name, static::$collectNamed)) {
+             throw new RouteException(sprintf('This route name (%s) already taken!', $name));
+        }
+
+        static::$collectNamed[$name] = $this;
+
+        $this->name = $name;
 
         return $this;
     }
@@ -411,7 +435,7 @@ class Route implements \ArrayAccess
      * @param string|null $requestMethod
      * @return bool
     */
-    public function matchMethod(?string $requestMethod): bool
+    public function matchMethods(?string $requestMethod): bool
     {
         if (\in_array($requestMethod, $this->methods)) {
             $this->addOptions(compact('requestMethod'));
@@ -428,28 +452,29 @@ class Route implements \ArrayAccess
      * Determine if the current method and path URL match route
      *
      * @param string $requestMethod
-     * @param string $requestPath
+     * @param string $requestUri
      * @return bool
      */
-    public function match(string $requestMethod, string $requestPath): bool
+    public function match(string $requestMethod, string $requestUri): bool
     {
-        return $this->matchMethod($requestMethod) && $this->matchPath($requestPath);
+        return $this->matchMethods($requestMethod) && $this->matchPath($requestUri);
     }
 
 
 
 
+
     /**
-     * @param string $requestPath
+     * @param string $path
      * @return false
     */
-    public function matchPath(string $requestPath): bool
+    public function matchPath(string $path): bool
     {
-         if (preg_match($pattern = $this->generatePattern(), $this->resolveURL($requestPath), $matches)) {
+         if (preg_match($pattern = $this->generatePattern(), $this->resolveURL($path), $matches)) {
 
              $this->matches($this->filterMatchedParams($matches));
 
-             $this->addOptions(compact('pattern', 'requestPath'));
+             $this->addOptions(compact('pattern', 'path'));
 
              return true;
          }
@@ -600,7 +625,7 @@ class Route implements \ArrayAccess
      * @param mixed $offset
      * @return bool
      */
-    public function offsetExists($offset): bool
+    public function offsetExists($offset)
     {
         return property_exists($this, $offset);
     }

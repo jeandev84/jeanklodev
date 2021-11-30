@@ -3,9 +3,9 @@ namespace Jan\Component\Routing;
 
 
 use Closure;
-use Jan\Component\Routing\Common\RouteCollectionManager;
+use Exception;
+use Jan\Component\Routing\Common\Resource;
 use Jan\Component\Routing\Contract\RouteCollectionInterface;
-use Jan\Component\Routing\Exception\RouteException;
 
 
 
@@ -14,7 +14,7 @@ use Jan\Component\Routing\Exception\RouteException;
  *
  * @package Jan\Component\Routing
 */
-class RouteCollection extends RouteCollectionManager
+class RouteCollection implements RouteCollectionInterface
 {
 
      /**
@@ -26,29 +26,289 @@ class RouteCollection extends RouteCollectionManager
 
 
 
-
-     /**
-      * @param string $namespace
+    /**
+     * Storage routes
+     *
+     * @var Route[]
      */
-     public function setControllerNamespace(string $namespace)
-     {
-          $this->namespace = $namespace;
-     }
+    protected $routes = [];
 
 
 
-     /**
-      * @return string
+
+    /**
+     * Storage routes group
+     *
+     * @var RouteGroup[]
+    */
+    protected $groups = [];
+
+
+
+    /**
+     * Storage routes resources
+     *
+     * @var Resource[]
+    */
+    protected $resources = [];
+
+
+
+
+    /**
+     * Storage route patterns
+     *
+     * @var array
+    */
+    protected $patterns = [];
+
+
+
+
+    /**
+     * route prefixes
+     *
+     * @var array
      */
-     public function getControllerNamespace(): string
-     {
-         return $this->namespace;
-     }
+    protected $options = [
+        'prefix'     => '',
+        'namespace'  => '',
+        'name'       => '',
+        'middleware' => []
+    ];
 
 
 
 
-     /**
+    /**
+     * @param string $namespace
+    */
+    public function setControllerNamespace(string $namespace)
+    {
+        $this->namespace = $namespace;
+    }
+
+
+
+    /**
+     * @return string
+    */
+    public function getControllerNamespace(): string
+    {
+        return $this->namespace;
+    }
+
+
+
+
+    /**
+     * @return mixed|null
+    */
+    protected function getRoutePrefix()
+    {
+        return $this->getOption('prefix');
+    }
+
+
+
+    /**
+     * @return mixed|null
+    */
+    protected function getRouteNamespace()
+    {
+        return $this->getOption('namespace');
+    }
+
+
+
+
+    /**
+     * @return string
+    */
+    protected function getRouteNameGroup(): ?string
+    {
+        return $this->getOption('name', '');
+    }
+
+
+
+
+    /**
+     * @return array
+    */
+    protected function getGlobalMiddlewares(): ?array
+    {
+        return $this->getOption('middleware', []);
+    }
+
+
+
+    /**
+     * Get all stored routes
+     *
+     * @return Route[]
+    */
+    public function getRoutes(): array
+    {
+        $routes = [];
+
+        foreach ($this->routes as $route) {
+            if (! $name = $route->getName()) {
+                $this->abortIf('Cannot map route without name. Please set route name for path ('. $route->getPath() .')');
+            }
+
+            $routes[$name] = $route;
+        }
+
+        return $routes;
+    }
+
+
+
+    /**
+     * @return RouteGroup[]
+    */
+    public function getGroups(): array
+    {
+        return $this->groups;
+    }
+
+
+
+    /**
+     * @return array
+     */
+    public function getGlobalPatterns(): array
+    {
+        return $this->patterns;
+    }
+
+
+
+    /**
+     * Add route
+     *
+     * @param Route $route
+     * @return Route
+    */
+    public function addRoute(Route $route): Route
+    {
+        $this->routes[] = $route;
+
+        return $route;
+    }
+
+
+
+
+    /**
+     * Add routes
+     *
+     * @param array $routes
+    */
+    public function addRoutes(array $routes)
+    {
+        foreach ($routes as $route) {
+            $this->addRoute($route);
+        }
+    }
+
+
+    /**
+     * Add group
+     *
+     * @param RouteGroup $group
+     * @return void
+     * @throws \Exception
+    */
+    public function addGroup(RouteGroup $group)
+    {
+         // $this->groups[$group->getName()][] = $group->getRoutes();
+    }
+
+
+
+
+
+    /**
+     * Add group
+     *
+     * @param
+     * @return void
+    */
+    public function addResource(Resource $resource)
+    {
+        $this->resources[] = $resource;
+    }
+
+
+
+
+
+    /**
+     * Add route options
+     *
+     * @param array $options
+     * @return $this
+     */
+    public function addOptions(array $options): self
+    {
+        $this->options = array_merge($this->options, $options);
+
+        return $this;
+    }
+
+
+
+    /**
+     * Remove route options
+     *
+     * @return void
+     */
+    public function removeOptions()
+    {
+        $this->options = [];
+    }
+
+
+
+
+
+    /**
+     * Set global route patterns
+     *
+     * @param $patterns
+     * @return $this
+     */
+    public function patterns($patterns): RouteCollection
+    {
+        $this->patterns = array_merge($this->patterns, $patterns);
+
+        return $this;
+    }
+
+
+
+
+    /**
+     * Set global route patterns
+     *
+     * @param $name
+     * @param $regex
+     * @return $this
+    */
+    public function pattern($name, $regex): RouteCollection
+    {
+        $this->patterns[$name] = $regex;
+
+        return $this;
+    }
+
+
+
+
+
+    /**
       * Add route with given params
       *
       * @param $methods
@@ -56,13 +316,30 @@ class RouteCollection extends RouteCollectionManager
       * @param $callback
       * @param string|null $name
       * @return Route
-      * @throws RouteException
      */
      public function map($methods, string $path, $callback, string $name = null): Route
      {
-           $route = $this->makeRoute(compact('methods', 'path', 'callback', 'name'));
+         $methods    = $this->resolveMethods($methods);
+         $path       = $this->resolvePath($path);
+         $callback   = $this->resolveCallback($callback);
+         $nameGroup  = $this->getRouteNameGroup();
 
-           return $this->addRoute($route);
+         $route = new Route($methods, $path, $callback, $nameGroup);
+
+         if ($name) {
+             $route->name($name);
+         }
+
+         $route->where($this->getGlobalPatterns())
+               ->middleware($this->getGlobalMiddlewares())
+               ->addOptions([
+                   'prefixPath'          => $this->getOption('prefix'),
+                   'controllerNamespace' => $this->getOption('namespace'),
+                   'prefixName'          => $nameGroup
+               ]);
+
+
+         return $this->addRoute($route);
      }
 
 
@@ -73,7 +350,6 @@ class RouteCollection extends RouteCollectionManager
      * @param $callback
      * @param string|null $name
      * @return Route
-     * @throws RouteException
     */
     public function get(string $path, $callback, string $name = null): Route
     {
@@ -88,8 +364,7 @@ class RouteCollection extends RouteCollectionManager
      * @param $callback
      * @param string|null $name
      * @return Route
-     * @throws RouteException
-     */
+    */
     public function post(string $path, $callback, string $name = null): Route
     {
         return $this->map('POST', $path, $callback, $name);
@@ -104,7 +379,6 @@ class RouteCollection extends RouteCollectionManager
      * @param $callback
      * @param string|null $name
      * @return Route
-     * @throws RouteException
     */
     public function put(string $path, $callback, string $name = null): Route
     {
@@ -121,7 +395,6 @@ class RouteCollection extends RouteCollectionManager
      * @param $callback
      * @param string|null $name
      * @return Route
-     * @throws RouteException
     */
     public function patch(string $path, $callback, string $name = null): Route
     {
@@ -136,7 +409,6 @@ class RouteCollection extends RouteCollectionManager
      * @param $callback
      * @param string|null $name
      * @return Route
-     * @throws RouteException
     */
     public function delete(string $path, $callback, string $name = null): Route
     {
@@ -157,13 +429,13 @@ class RouteCollection extends RouteCollectionManager
      {
            $group = new RouteGroup($routes, $options);
 
-           $this->addRouteOptions($options);
+           $this->addOptions($options);
 
            $group->call($this);
 
-           $this->addRouteGroup($group);
+           $this->addGroup($group);
 
-           $this->removeRouteOptions();
+           $this->removeOptions();
      }
 
 
@@ -175,7 +447,7 @@ class RouteCollection extends RouteCollectionManager
     */
     public function prefix(string $prefix): RouteCollection
     {
-        $this->addRouteOptions(compact('prefix'));
+        $this->addOptions(compact('prefix'));
 
         return $this;
     }
@@ -188,7 +460,7 @@ class RouteCollection extends RouteCollectionManager
     */
     public function namespace(string $namespace): RouteCollection
     {
-        $this->addRouteOptions(compact('namespace'));
+        $this->addOptions(compact('namespace'));
 
         return $this;
     }
@@ -201,7 +473,7 @@ class RouteCollection extends RouteCollectionManager
     */
     public function middleware(string $middleware): RouteCollection
     {
-        $this->addRouteOptions(compact('middleware'));
+        $this->addOptions(compact('middleware'));
 
         return $this;
     }
@@ -215,9 +487,22 @@ class RouteCollection extends RouteCollectionManager
     */
     public function name(string $name): RouteCollection
     {
-        $this->addRouteOptions(compact('name'));
+        $this->addOptions(compact('name'));
 
         return $this;
+    }
+
+
+
+
+    /**
+     * @param $name
+     * @param null $default
+     * @return mixed
+    */
+    public function getOption($name, $default = null)
+    {
+        return $this->options[$name] ?? $default;
     }
 
 
@@ -279,4 +564,14 @@ class RouteCollection extends RouteCollectionManager
          return $callback;
      }
 
+
+    /**
+     * @param $message
+    */
+    protected function abortIf($message)
+    {
+        return (function () use ($message) {
+            throw new Exception($message);
+        })();
+    }
 }

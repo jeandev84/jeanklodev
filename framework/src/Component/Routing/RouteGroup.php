@@ -23,6 +23,14 @@ class RouteGroup
      /**
       * @var array
      */
+     public $routes = [];
+
+
+
+
+     /**
+      * @var array
+     */
      protected $options = [];
 
 
@@ -41,13 +49,44 @@ class RouteGroup
 
 
 
+     /**
+      * @return mixed
+      * @throws \Exception
+     */
+     public function getName()
+     {
+         if(! isset($this->options['name'])) {
+              throw new \Exception('unable group name.');
+         }
+
+         return $this->options['name'];
+     }
+
+
+
 
      /**
       * Call routes group
      */
      public function call(RouteCollection $collection)
      {
-          call_user_func($this->callback);
+          call_user_func($this->callback, $collection);
+
+          foreach ($collection->getRoutes() as $route) {
+               if ($route->getOption('prefix.name') == $this->getName()) {
+                   $this->routes[] = $route;
+               }
+          }
+     }
+
+
+
+     /**
+      * @return array
+     */
+     public function getRoutes(): array
+     {
+         return $this->routes;
      }
 
 

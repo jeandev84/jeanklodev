@@ -17,16 +17,6 @@ use Jan\Component\Routing\RouteGroup;
 abstract class RouteCollectionManager implements RouteCollectionInterface
 {
 
-
-    /**
-     * Storage named routes
-     *
-     * @var array
-    */
-    protected $namedRoutes = [];
-
-
-
     /**
      * Storage routes
      *
@@ -145,57 +135,6 @@ abstract class RouteCollectionManager implements RouteCollectionInterface
 
 
     /**
-     * @return array
-    */
-    public function getNamedRoutes(): array
-    {
-        $routes = array_filter($this->getRoutes(), function ($route) {
-            return ! is_null($route->getName());
-        });
-
-        if ($routes) {
-           foreach ($routes as $route) {
-               $this->namedRoutes[$route->getName()] = $route;
-           }
-        }
-
-        return $this->namedRoutes;
-    }
-
-
-
-
-
-    /**
-     * Determine if given name route exists.
-     *
-     * @param string $name
-     * @return bool
-    */
-    protected function has(string $name): bool
-    {
-        return array_key_exists($name, $this->getNamedRoutes());
-    }
-
-
-
-
-    /**
-     * @param $name
-     * @param Route $route
-     * @return Route
-    */
-    public function add($name, Route $route): Route
-    {
-         $this->namedRoutes[$name] = $route;
-
-         return $this->addRoute($route);
-    }
-
-
-
-
-    /**
      * Add route
      *
      * @param Route $route
@@ -207,6 +146,8 @@ abstract class RouteCollectionManager implements RouteCollectionInterface
 
         return $route;
     }
+
+
 
 
     /**
@@ -257,7 +198,7 @@ abstract class RouteCollectionManager implements RouteCollectionInterface
      * @param array $options
      * @return $this
     */
-    public function addRouteOptions(array $options): self
+    public function addOptions(array $options): self
     {
         $this->availableOptions = array_merge($this->availableOptions, $options);
 
@@ -271,74 +212,10 @@ abstract class RouteCollectionManager implements RouteCollectionInterface
      *
      * @return void
      */
-    public function removeRouteOptions()
+    public function removeOptions()
     {
         $this->availableOptions = [];
     }
-
-
-    /**
-     * Set global route patterns
-     *
-     * @param $patterns
-     * @return $this
-    */
-    public function patterns($patterns): self
-    {
-        $this->patterns = array_merge($this->patterns, $patterns);
-        
-        return $this;
-    }
-
-
-    
-    
-    /**
-     * Set global route patterns
-     *
-     * @param $name
-     * @param $regex
-     * @return $this
-    */
-    public function pattern($name, $regex): self
-    {
-        $this->patterns[$name] = $regex;
-
-        return $this;
-    }
-
-
-
-    /**
-     * Create route
-     *
-     * @param array $params
-     * @return Route
-     * @throws RouteException
-    */
-    public function makeRoute(array $params): Route
-    {
-        $params = $this->validateRequiredRouteArguments($params);
-
-        $methods    = $this->resolveMethods($params['methods']);
-        $path       = $this->resolvePath($params['path']);
-        $callback   = $this->resolveCallback($params['callback']);
-        $nameGroup  = $this->getRouteNameGroup();
-
-        $route = new Route($methods, $path, $callback, $nameGroup);
-
-        if (isset($params['name'])) {
-            $route->name($params['name']);
-        }
-
-        $route->where($this->getGlobalPatterns())
-              ->middleware($this->getGlobalMiddlewares())
-              ->addOptions($this->getDefaultOptions());
-
-
-        return $route;
-    }
-
 
 
 
