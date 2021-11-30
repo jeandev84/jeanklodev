@@ -148,7 +148,12 @@ class Router implements RouterInterface
     {
          $routes = $this->filteredRoutes($routes);
 
-         foreach ($routes as $name => $route) {
+         foreach ($routes as $route) {
+
+             if (! $name = $route->getName()) {
+                 $this->abortIf('Cannot map route without name. Please set route name for path ('. $route->getPath() .')');
+             }
+
              $this->add($name, $route);
          }
     }

@@ -150,17 +150,7 @@ class RouteCollection implements RouteCollectionInterface
     */
     public function getRoutes(): array
     {
-        $routes = [];
-
-        foreach ($this->routes as $route) {
-            if (! $name = $route->getName()) {
-                $this->abortIf('Cannot map route without name. Please set route name for path ('. $route->getPath() .')');
-            }
-
-            $routes[$name] = $route;
-        }
-
-        return $routes;
+        return $this->routes;
     }
 
 
